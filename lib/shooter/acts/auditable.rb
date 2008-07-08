@@ -29,8 +29,6 @@ module Shooter
           
           self.class_eval <<-EOV
             #{options[:when]} do |audited_model|
-              puts "starting callback now\n\n\n"
-              puts audited_model.auditor.inspect
               item = audit_items.find {|item| item[:key] == "#{key}"}
               if (should_call = item[:if]).is_a?(Proc) ? should_call.call(audited_model) : audited_model.send(should_call)
                 message = (msg = item[:with_message]).is_a?(Proc) ? msg.call(audited_model) : audited_model.send(msg)
