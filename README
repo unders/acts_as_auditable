@@ -1,0 +1,66 @@
+ActsAsAuditable
+===============
+
+ActsAsAuditable is an easy way to integrate auditing into your Rails application.  It has one requirement, however:
+
+1. You need to have a User model that inherits from ActiveRecord::Base with an instance method of auditor_name.  This can return any string you'd like; usually, it'd be either a full name, email address, or username/login for that user.  This is stored in case a user is deleted and you still want to view his audits.
+
+Example
+=======
+
+To demonstrate, I'll scaffold a couple of AR::B models.
+
+  class Entry < ActiveRecord::Base
+    belongs_to :owner, :class_name => "User", :foreign_key => :owner_id
+    has_many :comments
+
+    audit :when => :before_save, 
+          :if => lambda { |m| m.title.length > 50 }, 
+          :with_message => :long_warning
+
+    audit :when => :before_save, 
+          :if => lambda { |m| m.title_changed? && !m.new_record? }, 
+          :with_message => lambda { |m| "Title was changed from #{m.title_was} to #{m.title}" }
+
+    audit :when => :before_save,
+          :if => :ownership_changed?,
+          :with_message => lambda {|m| "Owners of this entry have changed" }
+
+    protected
+
+    def long_warning
+      "This title is really long.  It should probably be fixed eventually..."
+    end
+
+    def ownership_changed?
+      return false if self.new_record?
+      self.owner_id_changed?
+    end
+  end
+  
+
+  class Comment < ActiveRecord::Base
+    belongs_to :entry
+    belongs_to :owner, :class_name => "User", :foreign_key => :owner_id
+    validates_presence_of :entry_id, :owner_id
+  end
+  
+  class User < ActiveRecord::Base
+    has_many :entries, :foreign_key => :owner_id
+    has_many :comments
+
+    def auditor_name; login; end
+  end
+
+On the Entry model, there's a call to audit, which takes three options: :when, :if, and :with_message.
+
+:when is the callback on which you want the audit to be created; most likely, this will be before_save.
+
+:if is a Proc (or instance method on the model) that evaluates to true or false.  This determines the conditions of when the callback fires.
+
+:with_message is a Proc (or instance method on the model) that returns the audit message
+
+
+Calling audit on a model also makes available an instance method, will_be_audited?, and a validation to check if the model's auditor has been assigned.  Usually, the auditor will be the person modifying the record; assign this in the controller for fine-grained control, or override the auditor instance method on the model, returning a User.
+
+Copyright (c) 2008 Josh Clayton, released under the MIT license
