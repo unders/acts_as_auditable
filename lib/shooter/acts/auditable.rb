@@ -16,7 +16,7 @@ module Shooter
             cattr_accessor :audit_items
             attr_accessor :auditor
 
-            has_many :audits, :as => :auditable
+            has_many :audits, :as => :auditable, :order => "created_at DESC"
             
             validate :ensure_auditor_is_assigned_if_audited, :if => lambda {|m| m.will_be_audited? }
           end
