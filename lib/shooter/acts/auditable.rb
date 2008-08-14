@@ -18,7 +18,7 @@ module Shooter
 
             has_many :audits, :as => :auditable, :order => "created_at DESC"
             
-            validate :ensure_auditor_is_assigned_if_audited, :if => lambda {|m| m.will_be_audited? }
+            validate :auditor_is_assigned, :if => lambda {|audited_model| audited_model.will_be_audited? }
           end
           
           self.audit_items ||= []
@@ -56,7 +56,7 @@ module Shooter
         
         protected
         
-        def ensure_auditor_is_assigned_if_audited
+        def auditor_is_assigned
           errors.add(:auditor, "needs to be assigned") unless self.auditor
         end
       end
